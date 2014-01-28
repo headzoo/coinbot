@@ -1,0 +1,51 @@
+##########################
+## Database Settings
+##########################
+[database]
+# The database host name or IP address.
+host = localhost
+
+# The name of the database user.
+user = coinbot
+
+# The database user password.
+pass = passw0rd
+
+# The name of the database to select.
+name = coinbot
+
+
+
+##########################
+## Bot Settings
+##########################
+[bot]
+# Turn on or off verbose output from the bot.
+verbose = true
+
+# The character that begins bot commands
+trigger_char = !
+
+
+
+##########################
+## IRC Settings
+##########################
+[irc]
+# The host name or IP address of the IRC server.
+host = irc.freenode.net
+
+# The IRC server port number. The default is 6667.
+port = 6667
+
+# The bot name on the IRC server.
+nick = CoinBot
+
+# Identify with NickServ using this password.
+password = passw0rd
+
+# One or more channels to join after connecting. The bot can join multiple channels by providing multiple
+# join settings.
+join = #mincoin
+#join = #mincoin-dev
+#join = #mincoin-market
