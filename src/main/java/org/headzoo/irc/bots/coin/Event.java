@@ -22,9 +22,19 @@ import org.headzoo.irc.bots.coin.models.Channel;
 public class Event
 {
     /**
+     * The types of events
+     */
+    public enum Types
+    {
+        MESSAGE,
+        NOTICE,
+        PRIVATE
+    }
+
+    /**
      * The name of the event
      */
-    private String name = null;
+    private Types name = null;
 
     /**
      * The trigger that was used
@@ -64,12 +74,12 @@ public class Event
     /**
      * Constructor
      *
-     * @param name The name of the event
+     * @param type The type of the event
      * @param trigger The trigger that was used
      */
-    public Event(String name, String trigger)
+    public Event(Types type, String trigger)
     {
-        setName(name);
+        setType(type);
         setTrigger(trigger);
     }
 
@@ -78,7 +88,7 @@ public class Event
      *
      * @return Name of the event
      */
-    public String getName()
+    public Types getType()
     {
         return name;
     }
@@ -90,7 +100,7 @@ public class Event
      * @param name Name of the event
      * @return Event
      */
-    public Event setName(String name)
+    public Event setType(Types name)
     {
         this.name = name;
         return this;

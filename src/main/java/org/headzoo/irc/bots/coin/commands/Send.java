@@ -43,7 +43,7 @@ public class Send
     {
         return buildDescription(
             "<command>",
-            "Have the bot send the command tot he server.",
+            "Have the bot send the command to the server.",
             "send /list"
         );
     }
@@ -52,7 +52,7 @@ public class Send
      * {@inheritDoc}
      */
     @Override
-    public Action triggerAny(Event event)
+    public Action onMessage(Event event)
     {
         String message = event.getMessage();
         Action action = new Action();
@@ -68,5 +68,14 @@ public class Send
         }
 
         return action;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Action onPrivate(Event event)
+    {
+        return onMessage(event);
     }
 }

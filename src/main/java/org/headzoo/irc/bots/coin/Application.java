@@ -79,7 +79,7 @@ public class Application
         DataSource data_source = new DataSource(uri);
 
         try {
-            Server server = new Server(
+            ServerDetails server = new ServerDetails(
                 config.get("irc", "host", String.class),
                 config.get("irc", "port", Integer.class),
                 config.get("irc", "password", String.class)
@@ -87,7 +87,8 @@ public class Application
             CoinBot bot = new CoinBot(server, data_source);
             bot
                 .setNick(config.get("irc", "nick", String.class))
-                .setPassword(config.get("irc", "password", String.class))
+                .setAdminOps(config.get("irc", "admin_ops", Boolean.class))
+                .setNickServPassword(config.get("irc", "password", String.class))
                 .setVerbose(config.get("bot", "verbose", Boolean.class))
                 .setPrefix(config.get("bot", "prefix", String.class))
                 .setChannels(config.get("irc").getAll("join"))

@@ -53,7 +53,7 @@ public class Part
      * {@inheritDoc}
      */
     @Override
-    public Action triggerAny(Event event)
+    public Action onMessage(Event event)
     {
         String message = event.getMessage();
         Channel channel = event.getChannel();
@@ -70,5 +70,14 @@ public class Part
         }
 
         return action;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Action onPrivate(Event event)
+    {
+        return onMessage(event);
     }
 }

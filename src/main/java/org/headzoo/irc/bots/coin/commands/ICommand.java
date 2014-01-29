@@ -59,12 +59,12 @@ public interface ICommand
     /**
      * Called once all commands are loaded
      */
-    public void triggerStartup();
+    public void onStartup();
 
     /**
      * Called when the command is being shutdown
      */
-    public void triggerShutdown();
+    public void onShutdown();
 
     /**
      * This method is called whenever the command trigger is sent to a channel
@@ -72,7 +72,7 @@ public interface ICommand
      * @param event The trigger event information
      * @return The action to take
      */
-    public Action triggerMessage(Event event);
+    public Action onMessage(Event event);
 
     /**
      * This method is called whenever the command trigger is sent through a notice
@@ -80,7 +80,7 @@ public interface ICommand
      * @param event The trigger event information
      * @return The action to take
      */
-    public Action triggerNotice(Event event);
+    public Action onNotice(Event event);
 
     /**
      * This method is called whenever the command trigger is sent through a private message
@@ -88,16 +88,5 @@ public interface ICommand
      * @param event The trigger event information
      * @return The action to take
      */
-    public Action triggerPrivateMessage(Event event);
-
-    /**
-     * This method is called whenever the command trigger is sent through the channel, as a private message, or
-     * as a notice. This method is called in addition to the triggers for those events.
-     *
-     * @param event The trigger event information
-     * @return The action to take
-     */
-    public Action triggerAny(Event event);
-
-
+    public Action onPrivate(Event event);
 }

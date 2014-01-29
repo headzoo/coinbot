@@ -52,9 +52,18 @@ public class Shutdown
      * {@inheritDoc}
      */
     @Override
-    public Action triggerAny(Event event)
+    public Action onMessage(Event event)
     {
         bot.shutdown();
         return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Action onPrivate(Event event)
+    {
+        return onMessage(event);
     }
 }

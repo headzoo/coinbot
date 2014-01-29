@@ -6,14 +6,11 @@ import org.headzoo.irc.bots.coin.exceptions.InvalidCommandException;
 import org.headzoo.irc.bots.coin.models.Admin;
 import org.headzoo.irc.bots.coin.models.Channel;
 import org.headzoo.irc.bots.coin.models.Command;
+import org.headzoo.irc.bots.coin.models.Server;
 import org.javalite.activejdbc.Base;
-import org.jibble.pircbot.Colors;
-import org.jibble.pircbot.IrcException;
-import org.jibble.pircbot.NickAlreadyInUseException;
-import org.jibble.pircbot.PircBot;
+import org.jibble.pircbot.*;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -49,17 +46,17 @@ public class CoinBot
     /**
      * The server configuration
      */
-    protected Server server = null;
+    protected ServerDetails server_details = null;
 
     /**
      * The server we are connected to
      */
-    protected org.headzoo.irc.bots.coin.models.Server model_server = null;
+    protected Server model_server = null;
 
     /**
      * Identify with NickServ using this password
      */
-    protected String password = null;
+    protected String nickserv_password = null;
 
     /**
      * Whether to output messages
@@ -92,15 +89,21 @@ public class CoinBot
     protected List<Admin> admins = new ArrayList<Admin>();
 
     /**
+     * Whether channel ops are automatically admins
+     */
+    protected Boolean admin_ops = false;
+
+    /**
      * Constructor
      *
      * @param server The server configuration
      * @param data_source For connecting to the database
      */
-    public CoinBot(Server server, DataSource data_source)
+    public CoinBot(ServerDetails server, DataSource data_source)
     {
-        setServer(server);
+        setServerDetails(server);
         setDataSource(data_source);
+        setMessageDelay(5);
     }
 
     /**
@@ -116,13 +119,23 @@ public class CoinBot
     /**
      * Sets the server configuration
      *
-     * @param server The server configuration
+     * @param server_details The server configuration
      * @return CoinBot
      */
-    public CoinBot setServer(Server server)
+    public CoinBot setServerDetails(ServerDetails server_details)
     {
-        this.server = server;
+        this.server_details = server_details;
         return this;
+    }
+
+    /**
+     * Gets the server configuration
+     *
+     * @return The server configuration
+     */
+    public ServerDetails getServerDetails()
+    {
+        return server_details;
     }
 
     /**
@@ -140,13 +153,45 @@ public class CoinBot
     /**
      * Identify with NickServ using this password
      *
-     * @param password The password
+     * @param nickserv_password The password
      * @return CoinBot
      */
-    public CoinBot setPassword(String password)
+    public CoinBot setNickServPassword(String nickserv_password)
     {
-        this.password = password;
+        this.nickserv_password = nickserv_password;
         return this;
+    }
+
+    /**
+     * Returns the NickServ password for the bot
+     *
+     * @return The password
+     */
+    public String getNickServPassword()
+    {
+        return nickserv_password;
+    }
+
+    /**
+     * Sets whether channel ops are automatically admins
+     *
+     * @param admin_ops Whether channel ops are automatically admins
+     * @return CoinBot
+     */
+    public CoinBot setAdminOps(Boolean admin_ops)
+    {
+        this.admin_ops = admin_ops;
+        return this;
+    }
+
+    /**
+     * Returns whether channel ops are automatically admins
+     *
+     * @return Are ops admins?
+     */
+    public Boolean getAdminOps()
+    {
+        return admin_ops;
     }
 
     /**
@@ -193,6 +238,16 @@ public class CoinBot
     }
 
     /**
+     * Returns whether verbose output is enabled
+     *
+     * @return Is verbose output enabled?
+     */
+    public Boolean getVerbose()
+    {
+        return verbose;
+    }
+
+    /**
      * Sets the character that begins bot commands
      *
      * @param prefix The trigger character
@@ -215,6 +270,26 @@ public class CoinBot
     }
 
     /**
+     * Returns the channels the bot is in
+     *
+     * @return The channels
+     */
+    public Map<String, Channel> getJoined()
+    {
+        return joined;
+    }
+
+    /**
+     * Returns the bot admins
+     *
+     * @return The admins
+     */
+    public List<Admin> getAdmins()
+    {
+        return admins;
+    }
+
+    /**
      * Connects to the irc server
      */
     public void connect() throws IrcException, IOException
@@ -229,13 +304,13 @@ public class CoinBot
         while(!isConnected()) {
             try {
                 connection_attempts++;
-                connect(server.getHost(), server.getPort(), server.getPassword());
+                connect(server_details.getHost(), server_details.getPort(), server_details.getPassword());
             } catch (NickAlreadyInUseException e) {
                 if (connection_attempts > 10) {
                     throw e;
                 }
                 setName(getNick() + connection_attempts);
-                connect(server.getHost(), server.getPort(), server.getPassword());
+                connect(server_details.getHost(), server_details.getPort(), server_details.getPassword());
             }
         }
     }
@@ -248,11 +323,11 @@ public class CoinBot
     {
         try {
             initDatabaseThread();
-            model_server = org.headzoo.irc.bots.coin.models.Server.findFirst("`host` = ?", server.getHost());
+            model_server = org.headzoo.irc.bots.coin.models.Server.findFirst("`host` = ?", server_details.getHost());
             if (null == model_server) {
                 model_server = new org.headzoo.irc.bots.coin.models.Server();
-                model_server.setString("host", server.getHost());
-                model_server.setInteger("port", server.getPort());
+                model_server.setString("host", server_details.getHost());
+                model_server.setInteger("port", server_details.getPort());
             }
             model_server.setTimestamp("date_last_connect", Calendar.getInstance().getTime());
             model_server.saveIt();
@@ -262,8 +337,8 @@ public class CoinBot
             err(e);
         }
 
-        if (null != password) {
-            identify(password);
+        if (null != nickserv_password) {
+            identify(nickserv_password);
         }
         for(String channel: channels) {
             joinChannel(channel);
@@ -297,7 +372,7 @@ public class CoinBot
             }
         } else {
             for(ICommand command: commands.values()) {
-                command.triggerShutdown();
+                command.onShutdown();
             }
             System.exit(Application.EXIT_OKAY);
         }
@@ -370,7 +445,7 @@ public class CoinBot
         message = Colors.removeFormattingAndColors(message);
         if (!sender.equals(getNick()) && message.startsWith(prefix)) {
             String[] parts = splitTriggerAndMessage(message);
-            Event event = new Event("message", parts[0]);
+            Event event = new Event(Event.Types.MESSAGE, parts[0]);
             event
                 .setChannel(joined.get(channel))
                 .setSender(sender)
@@ -395,7 +470,7 @@ public class CoinBot
         notice = Colors.removeFormattingAndColors(notice);
         if (!sender.equals(getNick()) && notice.startsWith(prefix)) {
             String[] parts = splitTriggerAndMessage(notice);
-            Event event = new Event("notice", parts[0]);
+            Event event = new Event(Event.Types.NOTICE, parts[0]);
             event
                 .setSender(sender)
                 .setTarget(target)
@@ -419,13 +494,88 @@ public class CoinBot
         message = Colors.removeFormattingAndColors(message);
         if (!sender.equals(getNick()) && message.startsWith(prefix)) {
             String[] parts = splitTriggerAndMessage(message);
-            Event event = new Event("privateMessage", parts[0]);
+            Event event = new Event(Event.Types.PRIVATE, parts[0]);
             event
                 .setSender(sender)
                 .setLogin(login)
                 .setHostname(hostname)
                 .setMessage(parts[1]);
             trigger(event);
+        }
+    }
+
+    /**
+     * Triggers a command event
+     *
+     * @param event The event information
+     */
+    protected void trigger(Event event)
+    {
+        String sender    = event.getSender();
+        Boolean is_admin = isAdmin(event.getSender(), event.getHostname());
+
+        // The admin_ops setting controls whether channel operators are automatically admins.
+        if (!is_admin && admin_ops && null != sender) {
+            Channel channel = event.getChannel();
+            User[]  users   = getUsers(channel.getName());
+            for(User user: users) {
+                if (user.isOp() && user.getNick().equals(sender)) {
+                    is_admin = true;
+                    break;
+                }
+            }
+        }
+
+        for(String trigger: commands.keySet()) {
+            if (trigger.equals(event.getTrigger())) {
+                ICommand command = commands.get(trigger);
+                if (command.getIsEnabled() && (!command.getIsAdminOnly() || (command.getIsAdminOnly() && is_admin))) {
+                    try {
+                        Action action = null;
+                        switch(event.getType()) {
+                            case MESSAGE:
+                                action = command.onMessage(event);
+                                break;
+                            case NOTICE:
+                                action = command.onNotice(event);
+                                break;
+                            case PRIVATE:
+                                action = command.onPrivate(event);
+                                break;
+                        }
+                        if (null != action) {
+                            execAction(action);
+                        }
+                    } catch (Exception e) {
+                        err(e);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Executes a command action
+     *
+     * @param action The action to execute
+     */
+    protected void execAction(Action action)
+    {
+        String message = action.getMessage();
+        String target  = action.getTarget();
+        if (null != action && null != message && null != target) {
+            String[] parts = message.split("\n");
+            if (action.getIsNotice()) {
+                out("Executing action sendNotice('" + target + "', '" + message + "')");
+                for(String line: parts) {
+                    sendNotice(target, line);
+                }
+            } else {
+                out("Executing action sendMessage('" + target + "', '" + message + "')");
+                for(String line: parts) {
+                    sendMessage(target, line);
+                }
+            }
         }
     }
 
@@ -444,7 +594,7 @@ public class CoinBot
     public void loadCommands()
     {
         for(ICommand command: commands.values()) {
-            command.triggerShutdown();
+            command.onShutdown();
         }
 
         List<org.headzoo.irc.bots.coin.models.Command> db_commands
@@ -463,7 +613,7 @@ public class CoinBot
         }
 
         for(ICommand command: commands.values()) {
-            command.triggerStartup();
+            command.onStartup();
         }
     }
 
@@ -558,68 +708,6 @@ public class CoinBot
     {
         if (verbose) {
             e.printStackTrace();
-        }
-    }
-
-    /**
-     * Triggers a command event
-     *
-     * @param event The event information
-     */
-    protected void trigger(Event event)
-    {
-        // The event name, like "message", becomes "triggerMessage".
-        String event_name   = event.getName();
-        String method_name  = "trigger" + event_name.substring(0, 1).toUpperCase() + event_name.substring(1);
-        Boolean is_admin    = isAdmin(event.getSender(), event.getHostname());
-
-        for(String trigger: commands.keySet()) {
-            if (trigger.equals(event.getTrigger())) {
-                ICommand command = commands.get(trigger);
-                if (command.getIsEnabled() && (!command.getIsAdminOnly() || (command.getIsAdminOnly() && is_admin))) {
-                    try {
-                        out("Triggering " + method_name + "(name = '" + event.getName() + "', trigger = '" + event.getTrigger() + "')");
-                        Method method = command.getClass().getMethod(method_name, Event.class);
-                        Action action = (Action)method.invoke(command, event);
-                        if (null != action) {
-                            execAction(action);
-                        }
-
-                        out("Triggering triggerAny(name = '" + event.getName() + "', trigger = '" + event.getTrigger() + "')");
-                        action = command.triggerAny(event);
-                        if (null != action) {
-                            execAction(action);
-                        }
-                    } catch (Exception e) {
-                        err(e);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Executes a command action
-     *
-     * @param action The action to execute
-     */
-    protected void execAction(Action action)
-    {
-        String message = action.getMessage();
-        String target  = action.getTarget();
-        if (null != action && null != message && null != target) {
-            String[] parts = message.split("\n");
-            if (action.getIsNotice()) {
-                out("Executing action sendNotice('" + target + "', '" + message + "')");
-                for(String line: parts) {
-                    sendNotice(target, line);
-                }
-            } else {
-                out("Executing action sendMessage('" + target + "', '" + message + "')");
-                for(String line: parts) {
-                    sendMessage(target, line);
-                }
-            }
         }
     }
 

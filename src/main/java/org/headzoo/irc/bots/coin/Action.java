@@ -35,6 +35,21 @@ public class Action
     private Boolean is_notice = false;
 
     /**
+     * Constructor
+     */
+    public Action() {}
+
+    /**
+     * Constructor
+     *
+     * @param target The user/channel the command wants the message private messaged to
+     */
+    public Action(String target)
+    {
+        this.target = target;
+    }
+
+    /**
      * Gets the message the command wants to respond with
      *
      * @return The message

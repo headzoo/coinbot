@@ -53,7 +53,7 @@ public class Disable
      * {@inheritDoc}
      */
     @Override
-    public Action triggerAny(Event event)
+    public Action onMessage(Event event)
     {
         String message = event.getMessage();
         Action action  = new Action();
@@ -75,5 +75,14 @@ public class Disable
         }
 
         return action;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Action onPrivate(Event event)
+    {
+        return onMessage(event);
     }
 }

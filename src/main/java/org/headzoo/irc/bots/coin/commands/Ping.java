@@ -54,7 +54,7 @@ public class Ping
      * {@inheritDoc}
      */
     @Override
-    public Action triggerMessage(Event event)
+    public Action onMessage(Event event)
     {
         Action action = new Action();
         return action
@@ -65,7 +65,7 @@ public class Ping
     /**
      * {@inheritDoc}
      */
-    public Action triggerPrivateMessage(Event event)
+    public Action onPrivate(Event event)
     {
         Action action = new Action();
         return action

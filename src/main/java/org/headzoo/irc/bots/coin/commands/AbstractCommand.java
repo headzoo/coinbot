@@ -98,19 +98,19 @@ public abstract class AbstractCommand
      * {@inheritDoc}
      */
     @Override
-    public void triggerStartup() {}
+    public void onStartup() {}
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void triggerShutdown() {}
+    public void onShutdown() {}
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Action triggerMessage(Event event)
+    public Action onMessage(Event event)
     {
         return null;
     }
@@ -119,7 +119,7 @@ public abstract class AbstractCommand
      * {@inheritDoc}
      */
     @Override
-    public Action triggerNotice(Event event)
+    public Action onNotice(Event event)
     {
         return null;
     }
@@ -128,7 +128,7 @@ public abstract class AbstractCommand
      * {@inheritDoc}
      */
     @Override
-    public Action triggerPrivateMessage(Event event)
+    public Action onPrivate(Event event)
     {
         return null;
     }
@@ -137,7 +137,7 @@ public abstract class AbstractCommand
      * {@inheritDoc}
      */
     @Override
-    public Action triggerAny(Event event)
+    public Action onAny(Event event)
     {
         return null;
     }

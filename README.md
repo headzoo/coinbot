@@ -18,3 +18,6 @@ http://javalite.io/activejdbc
 
 SLF4J 1.7.5
 http://www.slf4j.org/
+
+Gson 2.2.4
+https://code.google.com/p/google-gson/

@@ -17,7 +17,7 @@ package org.headzoo.irc.bots.coin;
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  */
-public class Server
+public class ServerDetails
 {
     /**
      * The irc server host name
@@ -39,7 +39,7 @@ public class Server
      *
      * @param host The server host name
      */
-    public Server(String host)
+    public ServerDetails(String host)
     {
         setHost(host);
     }
@@ -50,7 +50,7 @@ public class Server
      * @param host The server host name
      * @param port The server port
      */
-    public Server(String host, Integer port)
+    public ServerDetails(String host, Integer port)
     {
         setHost(host);
         setPort(port);
@@ -63,7 +63,7 @@ public class Server
      * @param port The server port
      * @param password The server password
      */
-    public Server(String host, Integer port, String password)
+    public ServerDetails(String host, Integer port, String password)
     {
         setHost(host);
         setPort(port);
@@ -76,7 +76,7 @@ public class Server
      * @param host Server host name
      * @return Server
      */
-    public Server setHost(String host)
+    public ServerDetails setHost(String host)
     {
         this.host = host;
         return this;
@@ -98,7 +98,7 @@ public class Server
      * @param port A port number
      * @return Server
      */
-    public Server setPort(Integer port)
+    public ServerDetails setPort(Integer port)
     {
         this.port = port;
         return this;
@@ -120,7 +120,7 @@ public class Server
      * @param password The server password
      * @return Server
      */
-    public Server setPassword(String password)
+    public ServerDetails setPassword(String password)
     {
         this.password = password;
         return this;

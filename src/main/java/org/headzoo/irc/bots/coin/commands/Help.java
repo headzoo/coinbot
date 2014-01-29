@@ -54,7 +54,7 @@ public class Help
      * {@inheritDoc}
      */
     @Override
-    public Action triggerAny(Event event)
+    public Action onMessage(Event event)
     {
         Map<String, ICommand> commands = bot.getCommands();
         Action action = new Action();
@@ -78,5 +78,14 @@ public class Help
         }
 
         return action;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Action onPrivate(Event event)
+    {
+        return onMessage(event);
     }
 }

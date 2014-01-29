@@ -52,7 +52,7 @@ public class Reload
      * {@inheritDoc}
      */
     @Override
-    public Action triggerAny(Event event)
+    public Action onMessage(Event event)
     {
         String message = event.getMessage();
         Action action = new Action();
@@ -73,5 +73,14 @@ public class Reload
         }
 
         return action;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Action onPrivate(Event event)
+    {
+        return onMessage(event);
     }
 }
