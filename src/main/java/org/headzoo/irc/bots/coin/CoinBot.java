@@ -1,12 +1,11 @@
 package org.headzoo.irc.bots.coin;
 
-import org.headzoo.irc.bots.coin.commands.Action;
-import org.headzoo.irc.bots.coin.commands.Command;
-import org.headzoo.irc.bots.coin.commands.Event;
+import org.headzoo.irc.bots.coin.commands.AbstractCommand;
 import org.headzoo.irc.bots.coin.commands.ICommand;
 import org.headzoo.irc.bots.coin.models.Admin;
 import org.headzoo.irc.bots.coin.models.Channel;
 import org.javalite.activejdbc.Base;
+import org.jibble.pircbot.Colors;
 import org.jibble.pircbot.IrcException;
 import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
@@ -34,7 +33,6 @@ import java.util.*;
  */
 public class CoinBot
     extends PircBot
-    implements ICommand
 {
     /**
      * For connecting to the database
@@ -214,6 +212,16 @@ public class CoinBot
     }
 
     /**
+     * Returns the trigger character
+     *
+     * @return The trigger character
+     */
+    public String getTriggerChar()
+    {
+        return trigger_char;
+    }
+
+    /**
      * Connects to the irc server
      */
     public void connect() throws IrcException, IOException
@@ -383,6 +391,7 @@ public class CoinBot
     @Override
     public void onMessage(String channel, String sender, String login, String hostname, String message)
     {
+        message = Colors.removeFormattingAndColors(message);
         if (!sender.equals(nick) && message.startsWith(trigger_char)) {
             String[] parts = splitTriggerAndMessage(message);
             Event event = new Event("message", parts[0], nick);
@@ -407,6 +416,7 @@ public class CoinBot
      */
     public void onNotice(String sender, String login, String hostname, String target, String notice)
     {
+        notice = Colors.removeFormattingAndColors(notice);
         if (!sender.equals(nick) && notice.startsWith(trigger_char)) {
             String[] parts = splitTriggerAndMessage(notice);
             Event event = new Event("notice", parts[0], nick);
@@ -430,6 +440,7 @@ public class CoinBot
      */
     public void onPrivateMessage(String sender, String login, String hostname, String message)
     {
+        message = Colors.removeFormattingAndColors(message);
         if (!sender.equals(nick) && message.startsWith(trigger_char)) {
             String[] parts = splitTriggerAndMessage(message);
             Event event = new Event("privateMessage", parts[0], nick);
@@ -454,20 +465,11 @@ public class CoinBot
     /**
      * Loads the commands from the database
      */
-    protected void loadCommands()
+    public void loadCommands()
     {
         for(ICommand command: commands.values()) {
             command.triggerShutdown();
         }
-        commands = new HashMap<String, ICommand>();
-        commands.put("shutdown", this);
-        commands.put("part",     this);
-        commands.put("join",     this);
-        commands.put("reload",   this);
-        commands.put("help",     this);
-        commands.put("send",     this);
-        commands.put("enable",   this);
-        commands.put("disable",  this);
 
         List<org.headzoo.irc.bots.coin.models.Command> db_commands = org.headzoo.irc.bots.coin.models.Command.where("is_enabled = 1");
         for(org.headzoo.irc.bots.coin.models.Command db_command: db_commands) {
@@ -475,7 +477,7 @@ public class CoinBot
             String trigger    = db_command.getString("trigger");
 
             out("Loading command " + class_name + " with trigger " + trigger);
-            ICommand c = Command.factory(class_name);
+            ICommand c = AbstractCommand.factory(class_name, this);
             c.setTrigger(trigger);
             c.setDataSource(data_source);
             commands.put(trigger, c);
@@ -489,12 +491,58 @@ public class CoinBot
     /**
      * Loads the admin users from the database
      */
-    protected void loadAdmins()
+    public void loadAdmins()
     {
         initDatabaseThread();
         admins = Admin.findAll();
         for(Admin admin: admins) {
             out("Loaded admin " + admin.getString("nick") + "@" + admin.getString("hostname"));
+        }
+    }
+
+    /**
+     * Returns the loaded commands
+     *
+     * @return The commands
+     */
+    public Map<String, ICommand> getCommands()
+    {
+        return commands;
+    }
+
+    /**
+     * Output the message to stdout if the verbose option is turned on
+     *
+     * @param message The message to output
+     */
+    public void out(String message)
+    {
+        if (verbose) {
+            System.out.println(message);
+        }
+    }
+
+    /**
+     * Output the message to stderr if the verbose option is turned on
+     *
+     * @param message The message to output
+     */
+    public void err(String message)
+    {
+        if (verbose) {
+            System.err.println(message);
+        }
+    }
+
+    /**
+     * Outputs the exception stack trace if the verbose option is turned on
+     *
+     * @param e The exception
+     */
+    public void err(Exception e)
+    {
+        if (verbose) {
+            e.printStackTrace();
         }
     }
 
@@ -509,19 +557,13 @@ public class CoinBot
         String event_name   = event.getName();
         String method_name  = "trigger" + event_name.substring(0, 1).toUpperCase() + event_name.substring(1);
         Boolean is_admin    = isAdmin(event.getSender(), event.getHostname());
+
         for(String trigger: commands.keySet()) {
             if (trigger.equals(event.getTrigger())) {
                 ICommand command = commands.get(trigger);
                 if (!command.isAdminOnly() || (command.isAdminOnly() && is_admin)) {
                     try {
                         out("Triggering " + method_name + "(name = '" + event.getName() + "', trigger = '" + event.getTrigger() + "')");
-                        //CommandHistory cmd_history = new CommandHistory();
-                        //cmd_history.setInteger("channel_id", event.getChannel().getId());
-                        //cmd_history.setInteger("command_id", 2);
-                        //cmd_history.setString("text", event.getMessage());
-                        //cmd_history.setBoolean("is_private", event_name == "privateMessage");
-                        //cmd_history.saveIt();
-
                         Method method = command.getClass().getMethod(method_name, Event.class);
                         Action action = (Action)method.invoke(command, event);
                         if (null != action) {
@@ -583,42 +625,6 @@ public class CoinBot
     }
 
     /**
-     * Output the message to stdout if the verbose option is turned on
-     *
-     * @param message The message to output
-     */
-    protected void out(String message)
-    {
-        if (verbose) {
-            System.out.println(message);
-        }
-    }
-
-    /**
-     * Output the message to stderr if the verbose option is turned on
-     *
-     * @param message The message to output
-     */
-    protected void err(String message)
-    {
-        if (verbose) {
-            System.err.println(message);
-        }
-    }
-
-    /**
-     * Outputs the exception stack trace if the verbose option is turned on
-     *
-     * @param e The exception
-     */
-    protected void err(Exception e)
-    {
-        if (verbose) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
      * Ensures this thread has a database connection
      */
     protected void initDatabaseThread()
@@ -640,225 +646,16 @@ public class CoinBot
         Boolean is_admin = false;
         if (null != sender && null != hostname) {
             for(Admin admin: admins) {
-                if (sender.equals(admin.getString("nick")) && hostname.equals(admin.getString("hostname"))) {
-                    is_admin = true;
-                    break;
+                String[] hostnames = admin.getHostname().split("\\|");
+                for(String host: hostnames) {
+                    if (sender.equals(admin.getNick()) && hostname.equals(host)) {
+                        is_admin = true;
+                        break;
+                    }
                 }
             }
         }
 
         return is_admin;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setTrigger(String trigger) {}
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getDescription(String sender, String hostname, String trigger_char, String trigger)
-    {
-        String message = null;
-        if (isAdmin(sender, hostname)) {
-            if (trigger.equals("shutdown")) {
-                message = DescriptionBuilder.build(
-                    trigger_char,                    trigger,
-                    "",
-                    "Immediately shutdown the bot.",
-                    "shutdown"
-                );
-            } else if (trigger.equals("reload")) {
-                message = DescriptionBuilder.build(
-                    trigger_char,
-                    trigger,
-                    "<commands|admins>",
-                    "Reload the commands or admins from the database",
-                    "reload admins"
-                );
-            } else if (trigger.equals("part")) {
-                message = DescriptionBuilder.build(
-                    trigger_char,
-                    trigger,
-                    "(channel)",
-                    "Part the specified channel, or part the channel the command was sent to.",
-                    "part #mincoin-dev"
-                );
-            } else if (trigger.equals("join")) {
-                message = DescriptionBuilder.build(
-                    trigger_char,
-                    trigger,
-                    "<channel>",
-                    "Join the specified channel.",
-                    "join #mincoin-dev"
-                );
-            } else if (trigger.equals("send")) {
-                message = DescriptionBuilder.build(
-                    trigger_char,
-                    trigger,
-                    "<command>",
-                    "Have the bot send the command tot he server.",
-                    "send /list"
-                );
-            } else if (trigger.equals("enable")) {
-                message = DescriptionBuilder.build(
-                    trigger_char,
-                    trigger,
-                    "<command>",
-                    "Enable the bot command.",
-                    "enable memo"
-                );
-            } else if (trigger.equals("disable")) {
-                message = DescriptionBuilder.build(
-                    trigger_char,
-                    trigger,
-                    "<command>",
-                    "Disable a bot command.",
-                    "disable memo"
-                );
-            }
-        }
-
-        return message;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public Boolean isAdminOnly()
-    {
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void triggerStartup() {}
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void triggerShutdown() {}
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Action triggerMessage(Event event)
-    {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Action triggerNotice(Event event)
-    {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Action triggerPrivateMessage(Event event)
-    {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Action triggerAny(Event event)
-    {
-        String sender   = event.getSender();
-        String hostname = event.getHostname();
-        String trigger  = event.getTrigger();
-        String message  = event.getMessage().trim();
-        Channel channel  = event.getChannel();
-        Action action   = new Action();
-
-        System.out.println(channel.getId());
-        System.out.println(channel.getName());
-        System.out.println(channel.getDateLastJoined());
-        System.out.println(channel.getServer());
-
-        out("Got command from admin " + sender + "@" + hostname + " " + trigger_char + trigger + " " + message);
-        if (trigger.equals("shutdown")) {
-            shutdown();
-        } else if (trigger.equals("part")) {
-            if (!message.isEmpty()) {
-                partChannel(message);
-            } else if (null != channel) {
-                partChannel(channel.getName());
-            } else {
-                action
-                    .setMessage("No channel specified.")
-                    .setTarget(sender);
-            }
-        } else if (trigger.equals("join")) {
-            if (message.isEmpty() || !message.startsWith("#")) {
-                action
-                    .setMessage("No channel or invalid channel given.")
-                    .setTarget(sender);
-            } else {
-                joinChannel(message);
-            }
-        } else if (trigger.equals("reload")) {
-            if (message.equals("commands")) {
-                loadCommands();
-                action
-                    .setMessage("Commands will be reloaded.")
-                    .setTarget(sender);
-            } else if (message.equals("admins")) {
-                loadAdmins();
-                action
-                    .setMessage("Admins will be reloaded.")
-                    .setTarget(sender);
-            } else {
-                action
-                    .setMessage("Nothing to load.")
-                    .setTarget(sender);
-            }
-        } else if (trigger.equals("send")) {
-            if (!message.isEmpty()) {
-                if (message.startsWith("/")) {
-                    message = message.substring(1);
-                }
-                sendRawLine(message);
-            } else {
-                action
-                    .setMessage("Nothing to send.")
-                    .setTarget(sender);
-            }
-        } else if (trigger.equals("enable")) {
-
-        } else if (trigger.equals("disable")) {
-
-        } else if (trigger.equals("help")) {
-            String buffer = "";
-            for(String trig: commands.keySet()) {
-                ICommand command   = commands.get(trig);
-                String description = command.getDescription(sender, hostname, trigger_char, trig);
-                if (null != description) {
-                    buffer += description + "\n";
-                }
-            }
-            if (!buffer.isEmpty()) {
-                buffer = nick + " Help\n" + buffer;
-                action
-                    .setMessage(buffer)
-                    .setTarget(sender);
-            }
-        }
-
-        return action;
     }
 }

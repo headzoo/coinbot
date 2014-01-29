@@ -1,4 +1,4 @@
-package org.headzoo.irc.bots.coin.commands;
+package org.headzoo.irc.bots.coin;
 
 /**
  * Describes the action a command wants the bot to take

@@ -1,6 +1,8 @@
 package org.headzoo.irc.bots.coin.commands;
 
+import org.headzoo.irc.bots.coin.Action;
 import org.headzoo.irc.bots.coin.DataSource;
+import org.headzoo.irc.bots.coin.Event;
 
 /**
  * Interface for command classes

@@ -1,4 +1,4 @@
-package org.headzoo.irc.bots.coin.commands;
+package org.headzoo.irc.bots.coin;
 
 import org.headzoo.irc.bots.coin.models.Channel;
 

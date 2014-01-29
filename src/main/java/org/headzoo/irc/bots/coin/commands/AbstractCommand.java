@@ -1,9 +1,11 @@
 package org.headzoo.irc.bots.coin.commands;
 
+import org.headzoo.irc.bots.coin.Action;
+import org.headzoo.irc.bots.coin.CoinBot;
 import org.headzoo.irc.bots.coin.DataSource;
+import org.headzoo.irc.bots.coin.Event;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 
 /**
  * Parent for command classes
@@ -22,9 +24,14 @@ import java.lang.reflect.InvocationTargetException;
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  */
-public abstract class Command
+public abstract class AbstractCommand
     implements ICommand
 {
+    /**
+     * Instance of CoinBot
+     */
+    protected CoinBot bot = null;
+
     /**
      * The database data source
      */
@@ -34,6 +41,16 @@ public abstract class Command
      * The bot trigger
      */
     protected String trigger = null;
+
+    /**
+     * Constructor
+     *
+     * @param bot Instance of the main bot
+     */
+    public AbstractCommand(CoinBot bot)
+    {
+        this.bot = bot;
+    }
 
     /**
      * {@inheritDoc}
@@ -105,25 +122,20 @@ public abstract class Command
      * Initializes a new bot command from the given class name
      *
      * @param class_name The bot class name
+     * @param bot Instance of the main bot
      * @return The command
      */
-    public static Command factory(String class_name)
+    public static ICommand factory(String class_name, CoinBot bot)
     {
-        Command command = null;
+        ICommand command = null;
         try {
-            Class command_class = Class.forName(class_name);
-            Constructor ctor = command_class.getConstructor();
-            command = (Command)ctor.newInstance();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            Object[] args = { bot };
+            Class<?>[] types       = { CoinBot.class };
+            Class<?> command_class = Class.forName(class_name);
+            Constructor<?> ctor    = command_class.getConstructor(types);
+            command = (ICommand)ctor.newInstance(args);
+        } catch (Exception e) {
+            bot.err(e);
         }
 
         return command;

@@ -22,4 +22,35 @@ import org.javalite.activejdbc.annotations.Table;
  */
 @Table(value = "admins")
 public class Admin
-    extends Model {}
+    extends Model
+{
+    /**
+     * Returns the admin id
+     *
+     * @return The id
+     */
+    public Integer getId()
+    {
+        return getInteger("id");
+    }
+
+    /**
+     * Returns the name of the admin
+     *
+     * @return The name
+     */
+    public String getNick()
+    {
+        return getString("nick");
+    }
+
+    /**
+     * Returns the name admin host name
+     *
+     * @return The host name
+     */
+    public String getHostname()
+    {
+        return getString("hostname");
+    }
+}
