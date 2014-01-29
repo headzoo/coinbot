@@ -1,7 +1,6 @@
 package org.headzoo.irc.bots.coin.commands;
 
 import org.headzoo.irc.bots.coin.Action;
-import org.headzoo.irc.bots.coin.DataSource;
 import org.headzoo.irc.bots.coin.Event;
 
 /**
@@ -24,35 +23,38 @@ import org.headzoo.irc.bots.coin.Event;
 public interface ICommand
 {
     /**
-     * Set the bot trigger
-     *
-     * @param trigger The trigger
-     */
-    public void setTrigger(String trigger);
-
-    /**
-     * Sets the database data source in case the command needs database access
-     *
-     * @param data_source The data source
-     */
-    public void setDataSource(DataSource data_source);
-
-    /**
      * Returns the command description
      *
      * @param sender Name of the user asking for the description
      * @param hostname The hostname of the user
-     * @param trigger_char The current trigger character
-     * @param trigger Return the description for this trigger
      */
-    public String getDescription(String sender, String hostname, String trigger_char, String trigger);
+    public String getDescription(String sender, String hostname);
 
     /**
-     * Returns whether the command is for bot admins only
+     * Returns whether the command is enabled
+     *
+     * @return Is the command enabled?
+     */
+    public Boolean getIsEnabled();
+
+    /**
+     * Sets whether the command is enabled
+     */
+    public void setIsEnabled(Boolean is_enabled);
+
+    /**
+     * Returns whether the command can only be used by admins
      *
      * @return For admins only?
      */
-    public Boolean isAdminOnly();
+    public Boolean getIsAdminOnly();
+
+    /**
+     * Sets whether the command can only be used by admins
+     *
+     * @param is_admin Is the command admin only?
+     */
+    public void setIsAdminOnly(Boolean is_admin);
 
     /**
      * Called once all commands are loaded

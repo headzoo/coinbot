@@ -32,11 +32,6 @@ public class Event
     private String trigger = null;
 
     /**
-     * The bots current nick
-     */
-    private String nick = null;
-
-    /**
      * The nick of the person who sent the message
      */
     private String sender = null;
@@ -71,13 +66,11 @@ public class Event
      *
      * @param name The name of the event
      * @param trigger The trigger that was used
-     * @param nick The bots current nick
      */
-    public Event(String name, String trigger, String nick)
+    public Event(String name, String trigger)
     {
         setName(name);
         setTrigger(trigger);
-        setNick(nick);
     }
 
     /**
@@ -122,28 +115,6 @@ public class Event
     public Event setTrigger(String trigger)
     {
         this.trigger = trigger;
-        return this;
-    }
-
-    /**
-     * Gets the bots current nick
-     *
-     * @return The bots nick
-     */
-    public String getNick()
-    {
-        return nick;
-    }
-
-    /**
-     * Sets the bots current nick
-     *
-     * @param nick The bots nick
-     * @return Event
-     */
-    public Event setNick(String nick)
-    {
-        this.nick = nick;
         return this;
     }
 

@@ -2,8 +2,10 @@ package org.headzoo.irc.bots.coin;
 
 import org.headzoo.irc.bots.coin.commands.AbstractCommand;
 import org.headzoo.irc.bots.coin.commands.ICommand;
+import org.headzoo.irc.bots.coin.exceptions.InvalidCommandException;
 import org.headzoo.irc.bots.coin.models.Admin;
 import org.headzoo.irc.bots.coin.models.Channel;
+import org.headzoo.irc.bots.coin.models.Command;
 import org.javalite.activejdbc.Base;
 import org.jibble.pircbot.Colors;
 import org.jibble.pircbot.IrcException;
@@ -55,11 +57,6 @@ public class CoinBot
     protected org.headzoo.irc.bots.coin.models.Server model_server = null;
 
     /**
-     * The name of the bot
-     */
-    protected String nick = null;
-
-    /**
      * Identify with NickServ using this password
      */
     protected String password = null;
@@ -72,7 +69,7 @@ public class CoinBot
     /**
      * The character that begins bot commands
      */
-    protected String trigger_char = "!";
+    protected String prefix = "!";
 
     /**
      * The channels to join
@@ -131,16 +128,12 @@ public class CoinBot
     /**
      * Sets the name of the bot
      *
-     * @param nick The name of the bot
+     * @param nick The nick
      * @return CoinBot
      */
     public CoinBot setNick(String nick)
     {
-        this.nick = nick;
-        if (isConnected()) {
-            setName(nick);
-        }
-
+        setName(nick);
         return this;
     }
 
@@ -202,12 +195,12 @@ public class CoinBot
     /**
      * Sets the character that begins bot commands
      *
-     * @param trigger_char The trigger character
+     * @param prefix The trigger character
      * @return CoinBot
      */
-    public CoinBot setTriggerChar(String trigger_char)
+    public CoinBot setPrefix(String prefix)
     {
-        this.trigger_char = trigger_char;
+        this.prefix = prefix;
         return this;
     }
 
@@ -216,9 +209,9 @@ public class CoinBot
      *
      * @return The trigger character
      */
-    public String getTriggerChar()
+    public String getPrefix()
     {
-        return trigger_char;
+        return prefix;
     }
 
     /**
@@ -231,7 +224,6 @@ public class CoinBot
             return;
         }
 
-        super.setName(nick);
         super.setVerbose(verbose);
         int connection_attempts = 0;
         while(!isConnected()) {
@@ -242,8 +234,7 @@ public class CoinBot
                 if (connection_attempts > 10) {
                     throw e;
                 }
-                nick = nick + connection_attempts;
-                super.setName(nick);
+                setName(getNick() + connection_attempts);
                 connect(server.getHost(), server.getPort(), server.getPassword());
             }
         }
@@ -323,13 +314,14 @@ public class CoinBot
     @Override
     public void onJoin(String channel, String sender, String login, String hostname)
     {
-        if (sender.equals(nick)) {
+        if (sender.equals(getNick())) {
             if (!joined.containsKey(channel)) {
                 try {
                     initDatabaseThread();
                     org.headzoo.irc.bots.coin.models.Channel c
                         = org.headzoo.irc.bots.coin.models.Channel.findFirst(
-                        "`server_id` = ? AND `name` = ?", model_server.getInteger("id"),
+                        "`server_id` = ? AND `name` = ?",
+                        model_server.getInteger("id"),
                         channel
                     );
                     if (null == c) {
@@ -358,24 +350,8 @@ public class CoinBot
     @Override
     public void onPart(String channel, String sender, String login, String hostname)
     {
-        if (sender.equals(nick) && joined.containsKey(channel)) {
+        if (sender.equals(getNick()) && joined.containsKey(channel)) {
             joined.remove(channel);
-        }
-    }
-
-    /**
-     * This method is called whenever someone (possibly us) changes nick on any of the channels that we are on
-     *
-     * @param old_nick The old nick
-     * @param login The login of the user
-     * @param hostname The hostname of the user
-     * @param new_nick The new nick
-     */
-    @Override
-    public void onNickChange(String old_nick, String login, String hostname, String new_nick)
-    {
-        if (old_nick.equals(nick)) {
-            nick = new_nick;
         }
     }
 
@@ -392,9 +368,9 @@ public class CoinBot
     public void onMessage(String channel, String sender, String login, String hostname, String message)
     {
         message = Colors.removeFormattingAndColors(message);
-        if (!sender.equals(nick) && message.startsWith(trigger_char)) {
+        if (!sender.equals(getNick()) && message.startsWith(prefix)) {
             String[] parts = splitTriggerAndMessage(message);
-            Event event = new Event("message", parts[0], nick);
+            Event event = new Event("message", parts[0]);
             event
                 .setChannel(joined.get(channel))
                 .setSender(sender)
@@ -417,9 +393,9 @@ public class CoinBot
     public void onNotice(String sender, String login, String hostname, String target, String notice)
     {
         notice = Colors.removeFormattingAndColors(notice);
-        if (!sender.equals(nick) && notice.startsWith(trigger_char)) {
+        if (!sender.equals(getNick()) && notice.startsWith(prefix)) {
             String[] parts = splitTriggerAndMessage(notice);
-            Event event = new Event("notice", parts[0], nick);
+            Event event = new Event("notice", parts[0]);
             event
                 .setSender(sender)
                 .setTarget(target)
@@ -441,9 +417,9 @@ public class CoinBot
     public void onPrivateMessage(String sender, String login, String hostname, String message)
     {
         message = Colors.removeFormattingAndColors(message);
-        if (!sender.equals(nick) && message.startsWith(trigger_char)) {
+        if (!sender.equals(getNick()) && message.startsWith(prefix)) {
             String[] parts = splitTriggerAndMessage(message);
-            Event event = new Event("privateMessage", parts[0], nick);
+            Event event = new Event("privateMessage", parts[0]);
             event
                 .setSender(sender)
                 .setLogin(login)
@@ -471,15 +447,18 @@ public class CoinBot
             command.triggerShutdown();
         }
 
-        List<org.headzoo.irc.bots.coin.models.Command> db_commands = org.headzoo.irc.bots.coin.models.Command.where("is_enabled = 1");
+        List<org.headzoo.irc.bots.coin.models.Command> db_commands
+            = org.headzoo.irc.bots.coin.models.Command.findAll();
         for(org.headzoo.irc.bots.coin.models.Command db_command: db_commands) {
-            String class_name = db_command.getString("class");
-            String trigger    = db_command.getString("trigger");
+            String class_name  = db_command.getCName();
+            String trigger     = db_command.getTrig();
+            Boolean is_enabled = db_command.getIsEnabled();
+            Boolean is_admin   = db_command.getIsAdmin();
 
-            out("Loading command " + class_name + " with trigger " + trigger);
-            ICommand c = AbstractCommand.factory(class_name, this);
-            c.setTrigger(trigger);
-            c.setDataSource(data_source);
+            out("Loading command " + class_name + " with trigger " + trigger + " is_enabled = " + is_enabled + " is_admin = " + is_admin);
+            ICommand c = AbstractCommand.factory(class_name, this, trigger);
+            c.setIsEnabled(is_enabled);
+            c.setIsAdminOnly(is_admin);
             commands.put(trigger, c);
         }
 
@@ -497,6 +476,42 @@ public class CoinBot
         admins = Admin.findAll();
         for(Admin admin: admins) {
             out("Loaded admin " + admin.getString("nick") + "@" + admin.getString("hostname"));
+        }
+    }
+
+    /**
+     * Enables a command
+     *
+     * @param trigger The command trigger
+     */
+    public void enableCommand(String trigger) throws InvalidCommandException
+    {
+        Command cmd      = Command.findFirst("trig = ?", trigger);
+        ICommand command = commands.get(trigger);
+        if (null != cmd) {
+            cmd.setBoolean("is_enabled", true);
+            cmd.saveIt();
+            command.setIsEnabled(true);
+        } else {
+            throw new InvalidCommandException("The command '" + trigger + "' is not found.");
+        }
+    }
+
+    /**
+     * Disables a command
+     *
+     * @param trigger The command trigger
+     */
+    public void disableCommand(String trigger) throws InvalidCommandException
+    {
+        Command cmd = Command.findFirst("trig = ?", trigger);
+        ICommand command = commands.get(trigger);
+        if (null != cmd && null != command) {
+            cmd.setBoolean("is_enabled", false);
+            cmd.saveIt();
+            command.setIsEnabled(false);
+        } else {
+            throw new InvalidCommandException("The command '" + trigger + "' is not found.");
         }
     }
 
@@ -561,7 +576,7 @@ public class CoinBot
         for(String trigger: commands.keySet()) {
             if (trigger.equals(event.getTrigger())) {
                 ICommand command = commands.get(trigger);
-                if (!command.isAdminOnly() || (command.isAdminOnly() && is_admin)) {
+                if (command.getIsEnabled() && (!command.getIsAdminOnly() || (command.getIsAdminOnly() && is_admin))) {
                     try {
                         out("Triggering " + method_name + "(name = '" + event.getName() + "', trigger = '" + event.getTrigger() + "')");
                         Method method = command.getClass().getMethod(method_name, Event.class);

@@ -2,7 +2,6 @@ package org.headzoo.irc.bots.coin.commands;
 
 import org.headzoo.irc.bots.coin.Action;
 import org.headzoo.irc.bots.coin.CoinBot;
-import org.headzoo.irc.bots.coin.DescriptionBuilder;
 import org.headzoo.irc.bots.coin.Event;
 
 import java.util.Calendar;
@@ -30,20 +29,25 @@ public class Ping
     /**
      * Constructor
      *
-     * @param bot Instance of the main bot
+     * @param bot     Instance of the main bot
+     * @param trigger The command trigger
      */
-    public Ping(CoinBot bot)
+    public Ping(CoinBot bot, String trigger)
     {
-        super(bot);
+        super(bot, trigger);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String getDescription(String sender, String hostname, String trigger_char, String trigger)
+    public String getDescription(String sender, String hostname)
     {
-        return DescriptionBuilder.build(trigger_char, trigger, "", "Responds with PONG and the local time.", "ping");
+        return buildDescription(
+            "",
+            "Responds with PONG and the local time.",
+            "ping"
+        );
     }
 
     /**

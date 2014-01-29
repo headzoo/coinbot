@@ -2,25 +2,24 @@ package org.headzoo.irc.bots.coin.commands;
 
 import org.headzoo.irc.bots.coin.Action;
 import org.headzoo.irc.bots.coin.CoinBot;
-import org.headzoo.irc.bots.coin.DescriptionBuilder;
 import org.headzoo.irc.bots.coin.Event;
 
 import java.util.Map;
 
 /**
- * Class description
- * <p/>
+ * Help command
+ *
  * Created by Sean <sean@mincoin.io> on 1/29/14.
- * <p/>
+ *
  * The MIT License (MIT)
- * <p/>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p/>
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  */
@@ -30,22 +29,21 @@ public class Help
     /**
      * Constructor
      *
-     * @param bot Instance of the main bot
+     * @param bot     Instance of the main bot
+     * @param trigger The command trigger
      */
-    public Help(CoinBot bot)
+    public Help(CoinBot bot, String trigger)
     {
-        super(bot);
+        super(bot, trigger);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String getDescription(String sender, String hostname, String trigger_char, String trigger)
+    public String getDescription(String sender, String hostname)
     {
-        return DescriptionBuilder.build(
-            trigger_char,
-            trigger,
+        return buildDescription(
             "",
             "Get a list of all bot commands.",
             "help"
@@ -61,13 +59,15 @@ public class Help
         Map<String, ICommand> commands = bot.getCommands();
         Action action = new Action();
         String buffer = "";
-        String trigger_char = bot.getTriggerChar();
+        String prefix = bot.getPrefix();
 
         for(String trig: commands.keySet()) {
-            ICommand command   = commands.get(trig);
-            String description = command.getDescription(event.getSender(), event.getHostname(), trigger_char, trig);
-            if (null != description) {
-                buffer += description + "\n";
+            ICommand command = commands.get(trig);
+            if (command.getIsEnabled()) {
+                String description = command.getDescription(event.getSender(), event.getHostname());
+                if (null != description) {
+                    buffer += description + "\n";
+                }
             }
         }
         if (!buffer.isEmpty()) {

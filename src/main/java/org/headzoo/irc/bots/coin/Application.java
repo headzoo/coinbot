@@ -89,7 +89,7 @@ public class Application
                 .setNick(config.get("irc", "nick", String.class))
                 .setPassword(config.get("irc", "password", String.class))
                 .setVerbose(config.get("bot", "verbose", Boolean.class))
-                .setTriggerChar(config.get("bot", "trigger_char", String.class))
+                .setPrefix(config.get("bot", "prefix", String.class))
                 .setChannels(config.get("irc").getAll("join"))
                 .connect();
         } catch (Exception e) {

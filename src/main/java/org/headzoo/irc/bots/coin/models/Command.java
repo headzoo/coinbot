@@ -22,4 +22,55 @@ import org.javalite.activejdbc.annotations.Table;
  */
 @Table(value = "commands")
 public class Command
-    extends Model {}
+    extends Model
+{
+    /**
+     * Returns the command id
+     *
+     * @return The command id
+     */
+    public Integer getId()
+    {
+        return getInteger("id");
+    }
+
+    /**
+     * Returns the command trigger
+     *
+     * @return The command trigger
+     */
+    public String getTrig()
+    {
+        return getString("trig");
+    }
+
+    /**
+     * Returns the command class name
+     *
+     * @return The command class name
+     */
+    public String getCName()
+    {
+        return getString("cname");
+    }
+
+    /**
+     * Returns whether the command is enabled
+     *
+     * @return Whether the command is enabled
+     */
+    public Boolean getIsEnabled()
+    {
+        return getBoolean("is_enabled");
+    }
+
+    /**
+     * Returns whether the command is for admins only
+     *
+     * @return Whether the command is for admins only
+     */
+    public Boolean getIsAdmin()
+    {
+        return getBoolean("is_admin");
+    }
+}
