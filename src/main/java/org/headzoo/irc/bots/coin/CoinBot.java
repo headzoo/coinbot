@@ -765,7 +765,7 @@ public class CoinBot
      * @param hostname The user hostname
      * @return Whether the user is an admin
      */
-    protected Boolean isAdmin(String sender, String hostname)
+    public Boolean isAdmin(String sender, String hostname)
     {
         Boolean is_admin = false;
         if (null != sender && null != hostname) {

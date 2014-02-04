@@ -60,10 +60,11 @@ public class Help
         Action action = new Action();
         String buffer = "";
         String prefix = bot.getPrefix();
+        Boolean is_admin = bot.isAdmin(event.getSender(), event.getHostname());
 
         for(String trig: commands.keySet()) {
             ICommand command = commands.get(trig);
-            if (command.getIsEnabled()) {
+            if (command.getIsEnabled() && (!command.getIsAdminOnly() || (command.getIsAdminOnly() && is_admin))) {
                 String description = command.getDescription(event.getSender(), event.getHostname());
                 if (null != description) {
                     buffer += description + "\n";
