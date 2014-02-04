@@ -1,9 +1,13 @@
 package org.headzoo.irc.bots.coin;
 
+import com.google.gson.Gson;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.ini4j.Ini;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 
 /**
  * Main runtime class

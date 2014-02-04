@@ -36,32 +36,32 @@ public class CoinBot
     /**
      * For connecting to the database
      */
-    protected DataSource data_source = null;
+    protected DataSource data_source;
 
     /**
      * Are we in the process of disconnecting?
      */
-    protected Boolean disconnecting = false;
+    protected Boolean disconnecting;
 
     /**
      * The server configuration
      */
-    protected ServerDetails server_details = null;
+    protected ServerDetails server_details;
 
     /**
      * The server we are connected to
      */
-    protected Server model_server = null;
+    protected Server model_server;
 
     /**
      * Identify with NickServ using this password
      */
-    protected String nickserv_password = null;
+    protected String nickserv_password;
 
     /**
      * Whether to output messages
      */
-    protected Boolean verbose = false;
+    protected Boolean verbose;
 
     /**
      * The character that begins bot commands
@@ -91,7 +91,8 @@ public class CoinBot
     /**
      * Whether channel ops are automatically admins
      */
-    protected Boolean admin_ops = false;
+    protected Boolean admin_ops;
+
 
     /**
      * Constructor
@@ -105,6 +106,47 @@ public class CoinBot
         setDataSource(data_source);
         setMessageDelay(5);
     }
+
+    /**
+     * Connects to the irc server
+     */
+    public void connect() throws IrcException, IOException
+    {
+        if (channels.isEmpty()) {
+            err("No channels have been set to join. Quiting.");
+            return;
+        }
+
+        super.setVerbose(verbose);
+        int connection_attempts = 0;
+        while(!isConnected()) {
+            try {
+                connection_attempts++;
+                connect(server_details.getHost(), server_details.getPort(), server_details.getPassword());
+            } catch (NickAlreadyInUseException e) {
+                if (connection_attempts > 10) {
+                    throw e;
+                }
+                setName(getNick() + connection_attempts);
+                connect(server_details.getHost(), server_details.getPort(), server_details.getPassword());
+            }
+        }
+    }
+
+    /**
+     * Disconnects from the server
+     */
+    public void shutdown()
+    {
+        disconnecting = true;
+        disconnect();
+    }
+
+
+    /********************************
+     * Primary getters and setters
+     *******************************/
+
 
     /**
      * Sets the data source required to connect to the database
@@ -290,30 +332,56 @@ public class CoinBot
     }
 
     /**
-     * Connects to the irc server
+     * Enables a command
+     *
+     * @param trigger The command trigger
      */
-    public void connect() throws IrcException, IOException
+    public void enableCommand(String trigger) throws InvalidCommandException
     {
-        if (channels.isEmpty()) {
-            err("No channels have been set to join. Quiting.");
-            return;
-        }
-
-        super.setVerbose(verbose);
-        int connection_attempts = 0;
-        while(!isConnected()) {
-            try {
-                connection_attempts++;
-                connect(server_details.getHost(), server_details.getPort(), server_details.getPassword());
-            } catch (NickAlreadyInUseException e) {
-                if (connection_attempts > 10) {
-                    throw e;
-                }
-                setName(getNick() + connection_attempts);
-                connect(server_details.getHost(), server_details.getPort(), server_details.getPassword());
-            }
+        Command cmd      = Command.findFirst("trig = ?", trigger);
+        ICommand command = commands.get(trigger);
+        if (null != cmd) {
+            cmd.setBoolean("is_enabled", true);
+            cmd.saveIt();
+            command.setIsEnabled(true);
+        } else {
+            throw new InvalidCommandException("The command '" + trigger + "' is not found.");
         }
     }
+
+    /**
+     * Disables a command
+     *
+     * @param trigger The command trigger
+     */
+    public void disableCommand(String trigger) throws InvalidCommandException
+    {
+        Command cmd = Command.findFirst("trig = ?", trigger);
+        ICommand command = commands.get(trigger);
+        if (null != cmd && null != command) {
+            cmd.setBoolean("is_enabled", false);
+            cmd.saveIt();
+            command.setIsEnabled(false);
+        } else {
+            throw new InvalidCommandException("The command '" + trigger + "' is not found.");
+        }
+    }
+
+    /**
+     * Returns the loaded commands
+     *
+     * @return The commands
+     */
+    public Map<String, ICommand> getCommands()
+    {
+        return commands;
+    }
+
+
+    /********************************
+     * IRC event callbacks
+     *******************************/
+
 
     /**
      * This method is called once the bot has successfully connected to the IRC server
@@ -504,6 +572,12 @@ public class CoinBot
         }
     }
 
+
+    /********************************
+     * Misc methods
+     *******************************/
+
+
     /**
      * Triggers a command event
      *
@@ -517,11 +591,13 @@ public class CoinBot
         // The admin_ops setting controls whether channel operators are automatically admins.
         if (!is_admin && admin_ops && null != sender) {
             Channel channel = event.getChannel();
-            User[]  users   = getUsers(channel.getName());
-            for(User user: users) {
-                if (user.isOp() && user.getNick().equals(sender)) {
-                    is_admin = true;
-                    break;
+            if (null != channel) {
+                User[] users = getUsers(channel.getName());
+                for(User user: users) {
+                    if (user.isOp() && user.getNick().equals(sender)) {
+                        is_admin = true;
+                        break;
+                    }
                 }
             }
         }
@@ -580,15 +656,6 @@ public class CoinBot
     }
 
     /**
-     * Disconnects from the server
-     */
-    public void shutdown()
-    {
-        disconnecting = true;
-        disconnect();
-    }
-
-    /**
      * Loads the commands from the database
      */
     public void loadCommands()
@@ -627,52 +694,6 @@ public class CoinBot
         for(Admin admin: admins) {
             out("Loaded admin " + admin.getString("nick") + "@" + admin.getString("hostname"));
         }
-    }
-
-    /**
-     * Enables a command
-     *
-     * @param trigger The command trigger
-     */
-    public void enableCommand(String trigger) throws InvalidCommandException
-    {
-        Command cmd      = Command.findFirst("trig = ?", trigger);
-        ICommand command = commands.get(trigger);
-        if (null != cmd) {
-            cmd.setBoolean("is_enabled", true);
-            cmd.saveIt();
-            command.setIsEnabled(true);
-        } else {
-            throw new InvalidCommandException("The command '" + trigger + "' is not found.");
-        }
-    }
-
-    /**
-     * Disables a command
-     *
-     * @param trigger The command trigger
-     */
-    public void disableCommand(String trigger) throws InvalidCommandException
-    {
-        Command cmd = Command.findFirst("trig = ?", trigger);
-        ICommand command = commands.get(trigger);
-        if (null != cmd && null != command) {
-            cmd.setBoolean("is_enabled", false);
-            cmd.saveIt();
-            command.setIsEnabled(false);
-        } else {
-            throw new InvalidCommandException("The command '" + trigger + "' is not found.");
-        }
-    }
-
-    /**
-     * Returns the loaded commands
-     *
-     * @return The commands
-     */
-    public Map<String, ICommand> getCommands()
-    {
-        return commands;
     }
 
     /**

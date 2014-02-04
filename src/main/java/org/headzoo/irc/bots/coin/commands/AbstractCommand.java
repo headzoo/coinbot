@@ -134,15 +134,6 @@ public abstract class AbstractCommand
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Action onAny(Event event)
-    {
-        return null;
-    }
-
-    /**
      * Build a description
      *
      * @param options The command options

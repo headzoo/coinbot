@@ -21,3 +21,6 @@ http://www.slf4j.org/
 
 Gson 2.2.4
 https://code.google.com/p/google-gson/
+
+Apache HttpComponents 4.3.2
+http://hc.apache.org/

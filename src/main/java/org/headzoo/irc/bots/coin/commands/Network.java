@@ -10,9 +10,9 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 
 /**
- * Price command
+ * Network command
  *
- * Created by Sean <sean@mincoin.io> on 1/29/14.
+ * Created by Sean <sean@mincoin.io> on 2/4/14.
  *
  * The MIT License (MIT)
  *
@@ -26,7 +26,7 @@ import java.text.DecimalFormat;
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  */
-public class Price
+public class Network
     extends AbstractCommand
 {
     /**
@@ -35,7 +35,7 @@ public class Price
      * @param bot     Instance of the main bot
      * @param trigger The command trigger
      */
-    public Price(CoinBot bot, String trigger)
+    public Network(CoinBot bot, String trigger)
     {
         super(bot, trigger);
     }
@@ -48,7 +48,7 @@ public class Price
     {
         return buildDescription(
             "",
-            "Returns the current price of MinCoin in USD and BTC.",
+            "Returns information on the MinCoin network.",
             trigger
         );
     }
@@ -87,19 +87,19 @@ public class Price
         }
         try {
             MinCoin mincoin = MinCoin.getInstanceFromApi();
-            DecimalFormat formatter_usd = new DecimalFormat("#,##0.00");
-            DecimalFormat formatter_btc = new DecimalFormat("#,##0.00000000");
+            DecimalFormat formatter = new DecimalFormat("###,###,###");
+            double hash_rate = (double)(mincoin.getHashRate() / 1000000);
             action.setTarget(target).setMessage(
                 String.format(
-                    "The current MinCoin prices: $%s USD, %s BTC",
-                    formatter_usd.format(mincoin.getPriceUSD()),
-                   formatter_btc.format(mincoin.getPriceBTC())
+                    "MinCoin Network: Hash Rate = %.2f MH/s, Blocks = %s.",
+                    hash_rate,
+                    formatter.format(mincoin.getBlockCount())
                 )
             );
         } catch (IOException e) {
             bot.err(e);
             action.setMessage("Unable to get price data right now. Try again later.")
-                    .setTarget(target);
+                .setTarget(target);
         }
 
         return action;
